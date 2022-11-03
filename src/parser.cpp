@@ -1,5 +1,6 @@
 #include "parser.hpp"
-#include <vector>
+#include "Instance.hpp"
+#include <iostream>
 #include <sstream>
 #include <fstream>
 #include <algorithm>
@@ -17,114 +18,87 @@ vector<string> split(string s, char delim) {
     return words;
 }
 
-Instance* load(std::string path){
-    // string prefixe = "../instances/cleaned/C";
-    // path = prefixe + path;
+Instance* load(string instanceName){
+    string prefixe = "../instances/";
+    string suffixe = ".txt";
+    string path = prefixe + instanceName + suffixe;
     
-    // string line;
-    // fstream f;
-    // vector<string> words;
+    string line;
+    fstream file;
+    vector<string> words;
+
+    int nbClient;
+    int nbPeriodes;
+    int nbDepotsPotentiels;
     
-    // int nbNodes;
-    // int nbEdges;
-    // int nbDemands;
-    // int lvnf;
-    // int mvnf;
-    // int hvnf;
-    // int AC;
-    // std::vector<std::vector<int>> adjencyMatrix;
-    // std::vector<int> demandsEnd;
-    // std::vector<int> demandsStart;
-    // std::vector<int> demands;
+    vector<vector<vector<int>>> c;
+    vector<vector<int>> f;
+    vector<int> p;
+    vector<int> n;
 
-    // cout << "trying to load : " << path << endl;
-    // f.open(path);
-    // if (!f){
-    //     cout<<"\ncouldn't load\n"<<endl;
-    // }else{
-    //     cout<<"\nsuccessful load\n"<<endl;
-    // }
+    cout << "trying to load : " << path << endl;
+    file.open(path);
+    if (!file){
+        cout<<"\ncouldn't load\n"<<endl;
+    }else{
+        cout<<"\nsuccessful load\n"<<endl;
+    }
 
-    // getline(f,line);
-    // getline(f,line);
-    // words = split(line,' ');
-    // nbNodes = stoi(words.at(0));
-    // nbEdges = stoi(words.at(1));
-    // nbDemands = stoi(words.at(2));
-    // lvnf = stoi(words.at(3));
-    // mvnf = stoi(words.at(4));
-    // hvnf = stoi(words.at(5));
-    
-    // getline(f,line);
+    //getting sizes of dimentions
+    getline(file,line);
+    words = split(line,' ');
+    nbDepotsPotentiels = stoi(words.at(0));
+    nbClient = stoi(words.at(1));
+    nbPeriodes = stoi(words.at(2));
 
-    // cout << "could get that n = " << nbNodes << ", m = " << nbEdges << ", and nD = " << nbDemands << endl;
+    //initializing with sizes
+    n.resize(nbPeriodes,0);
+    f.resize(nbDepotsPotentiels,n);
+    p.resize(nbPeriodes,0);
 
-    // for (int i=0;i<nbNodes;i++){
-    //     std::vector<int> tmp;
-    //     for (int j=0;j<nbNodes;j++){
-    //         tmp.push_back(0);
-    //     }
-    //     adjencyMatrix.push_back(tmp);
-    // }
+    vector<vector<int>> token;
+    token.resize(nbClient,p);
 
+    c.resize(nbDepotsPotentiels,token);
 
-    // for (int i=0; i<(nbEdges);i++){
-    //     //cout << stoi(words.at(0)) << " " << stoi(words.at(1)) << " at " << i << " on " << nbEdges << endl;
-    //     getline(f,line);
-    //     words = split(line,' ');
-    //     adjencyMatrix.at(stoi(words.at(0))).at(stoi(words.at(1))) = 1;
-    //     adjencyMatrix.at(stoi(words.at(1))).at(stoi(words.at(0))) = 1;
-    // }
+    cout << "|I| = " << nbDepotsPotentiels << ", |J| = " << nbClient << ", and |T| = " << nbPeriodes << endl << endl;
 
-    // getline(f,line);
+    getline(file,line);
+    words = split(line,' ');
 
-    // for (int i=0; i<nbDemands;i++){
-    //     getline(f,line);
-    //     words = split(line,' ');
-    //     demands.push_back(stoi(words.at(2)));
-    //     demandsStart.push_back(stoi(words.at(0)));
-    //     demandsEnd.push_back(stoi(words.at(1)));
-    // }
+    for (int i=0; i<nbPeriodes; ++i){
+        p.at(i) = stoi(words.at(i));
+    }
 
-    // Instance* i = new Instance(nbNodes,adjencyMatrix,lvnf,mvnf,hvnf,nbDemands,demandsStart,demandsEnd,demands,0,0);
-    // i = new Instance(nbNodes,adjencyMatrix,lvnf,mvnf,hvnf,nbDemands,demandsStart,demandsEnd,demands,generateArcCapacity(i),0);
-    // return i;
+    getline(file,line);
+    words = split(line,' ');
 
+    for (int i=0; i<nbPeriodes; ++i){
+        n.at(i) = stoi(words.at(i));
+    }
+
+    for (int i=0; i<nbDepotsPotentiels; ++i){
+        getline(file,line);
+        words = split(line,' ');
+
+        for (int t=0; t<nbPeriodes; ++t){
+            f.at(i).at(t) = stoi(words.at(t));
+        }
+
+        for (int j=0; j<nbClient; ++j){
+            getline(file,line);
+            words = split(line,' ');
+
+            for (int t=0; t<nbPeriodes; ++t){
+                c.at(i).at(j).at(t) = stoi(words.at(t));
+            }
+        }
+    }
+
+    Instance* i = new Instance(c,f,n,p,nbClient,nbDepotsPotentiels,nbPeriodes);
+    return i;
 }
 
-void write(Solution* sol){
+void write(Solution* sol, string solName){
     
 }
-
-// void Gwrite(int nbNodes, int nbEdges, int nbDemands, int** edges, vector<int> demands, vector<int> demandsEnd, vector<int> demandsStart, string fileName){
-
-//     string prefixe = "../instances/";
-//     string cl = "cleaned/";
-//     cout << "trying to write at : " << prefixe + cl + fileName << endl;
-//     ofstream f(prefixe + cl + fileName);
-//     if (!f){
-//         string s = "couldn't create file : ";
-//     }
-//     string separator = " ";
-
-//     vector<int> vnf = generateVNF(nbNodes,demands);
-
-//     f << "nbNodes nbEdges nbDemands lvnf mvnf hvnf u" << endl;
-
-//     f << nbNodes << separator << nbEdges << separator << nbDemands << separator << vnf[0] << separator << vnf[1] << separator << vnf[2] << endl << endl;
-
-//     for (int i=0;i<nbNodes;i++){
-//         for (int j=0;j<nbNodes;j++){
-//             int e = edges[i][j];
-//             if (e!=-1){
-//                 f << i << separator << j << endl;
-//             }
-//         }
-//     }
-
-//     f<<endl;
-//     for (int i=0;i<nbDemands;i++){
-//         f << demandsStart.at(i) << separator << demandsEnd.at(i) << separator << demands.at(i) << endl;
-//     }
-//     f.close();
-// }

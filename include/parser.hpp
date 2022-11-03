@@ -12,6 +12,6 @@ class Instance;
 Instance* load(std::string path);
 
 //write Solution to solutions/
-void clean(Solution* sol);
+void write(Solution* sol, std::string solName);
 
 #endif
