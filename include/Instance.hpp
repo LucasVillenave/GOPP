@@ -6,7 +6,10 @@
 //miam on balance toute les données dans une seule classe en public. c'est dégeulasse mais on s'en tappe
 class Instance {
     public :
+        //indices i,j,t. cost of assigning j to i at time t.
         std::vector<std::vector<std::vector<int>>> c;
+
+        //indices i,t. cost of opening i starting at time t.
         std::vector<std::vector<int>> f;
         std::vector<int> n;
         std::vector<int> p;
