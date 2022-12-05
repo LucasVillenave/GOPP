@@ -1,5 +1,5 @@
 #include "parser.hpp"
-#include "Instance.hpp"
+#include "FLPData.hpp"
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -18,7 +18,7 @@ vector<string> split(string s, char delim) {
     return words;
 }
 
-Instance* load(string instanceName){
+FLPData* load(string instanceName){
     string prefixe = "../instances/";
     string suffixe = ".txt";
     string path = prefixe + instanceName + suffixe;
@@ -95,10 +95,10 @@ Instance* load(string instanceName){
         }
     }
 
-    Instance* i = new Instance(c,f,n,p,nbClient,nbDepotsPotentiels,nbPeriodes);
+    FLPData* i = new FLPData(c,f,n,p,nbClient,nbDepotsPotentiels,nbPeriodes);
     return i;
 }
 
-void write(Solution* sol, string solName){
+void write(FLPSolution* sol, string solName){
     
 }

@@ -2,7 +2,7 @@
 #include "FLPMIPModel.hpp"
 #include <sstream>
 
-FLPSolution solve(FLPData instance, int timeLimit){
+FLPSolution FLPMIPModel::solve(FLPData instance){
     FLPSolution returnSol;
     try{
         std::cout << "--> Creating the Gurobi environment" << std::endl;
@@ -91,15 +91,15 @@ FLPSolution solve(FLPData instance, int timeLimit){
         for (int t=0; t<instance.nbPeriode; ++t){
             for (int i=0; i<instance.nbDepotPotentiel; ++i){
                 for (int j=0; j<instance.nbClient; ++j){
-                    GRBLinExpr desouvertureConst = X[t][i][j] * (instance.nbPeriode-1-t);
-                    for(int t2=t+1; t2<instance.nbPeriode; ++t2){
+                    for (int t2=t+1; t2<instance.nbPeriode; ++t2){
+                        GRBLinExpr desouvertureConst = X[t][i][j];
                         for(int i2=0; i2<instance.nbDepotPotentiel; ++i2){
                             desouvertureConst -= X[t2][i2][j];
                         }
+                        name << "non desouverture const of X[" << t << "][" << i << "][" << j << "]";
+                        model.addConstr(desouvertureConst<=0,name.str());
+                        name.str("");
                     }
-                    name << "non desouverture const of X[" << t << "][" << i << "][" << j << "]";
-                    model.addConstr(desouvertureConst<=0,name.str());
-                    name.str("");
                 }
             }
         }
@@ -129,7 +129,7 @@ FLPSolution solve(FLPData instance, int timeLimit){
         }
 
         std::cout <<"----> setting model" << std::endl;
-        model.set(GRB_DoubleParam_TimeLimit, timeLimit);
+        model.set(GRB_DoubleParam_TimeLimit, this->timeLimit);
 
         std::cout <<"----> model solving"<< std::endl;
         model.optimize();

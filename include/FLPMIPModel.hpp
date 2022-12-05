@@ -4,7 +4,12 @@
 #include "FLPSolution.hpp"
 
 class FLPMIPModel{
-    FLPSolution solve(FLPData instance, int timeLimit);
+    public : 
+        int timeLimit;
+
+        FLPMIPModel(int timeout){this->timeLimit = timeout;}
+
+        FLPSolution solve(FLPData instance);
 };
 
 #endif

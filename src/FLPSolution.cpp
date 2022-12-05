@@ -1,6 +1,6 @@
 #include "FLPSolution.hpp"
 
-int Solution::check (Instance i){
+int FLPSolution::check (FLPData i){
     int isFeasable = checkBinarity(i);
     if (isFeasable!=1){
         return isFeasable;
@@ -39,7 +39,7 @@ int Solution::check (Instance i){
     return 1;
 }
 
-int Solution::checkP(Instance i){
+int FLPSolution::checkP(FLPData i){
     for (int t=0; t<i.nbPeriode; ++t){
         int sum = 0;
         for (int d=0; d<i.nbDepotPotentiel; ++d){
@@ -52,7 +52,7 @@ int Solution::checkP(Instance i){
     return 1;
 }
 
-int Solution::checkN(Instance i){
+int FLPSolution::checkN(FLPData i){
     for (int t=0; t<i.nbPeriode; ++t){
         int sum = 0;
         for (int d=0; d<i.nbDepotPotentiel; ++d){
@@ -67,7 +67,7 @@ int Solution::checkN(Instance i){
     return 1;
 }
 
-int Solution::checkOuvertureUniqueY(Instance i){
+int FLPSolution::checkOuvertureUniqueY(FLPData i){
     for (int d=0; d<i.nbDepotPotentiel; ++d){
         int sum = 0;
         for (int t=0; t<i.nbPeriode; ++t){
@@ -80,7 +80,7 @@ int Solution::checkOuvertureUniqueY(Instance i){
     return 1;
 }
 
-int Solution::checkOuvertureUniqueX(Instance i){
+int FLPSolution::checkOuvertureUniqueX(FLPData i){
     for (int t=0; t<i.nbPeriode; ++t){
         for (int j=0; j<i.nbPeriode; ++j){
             int sum = 0;
@@ -95,7 +95,7 @@ int Solution::checkOuvertureUniqueX(Instance i){
     return 1;
 }
 
-int Solution::checkOuvertureService(Instance i){
+int FLPSolution::checkOuvertureService(FLPData i){
     for (int t=0; t<i.nbPeriode; ++t){
         for (int j=0; j<i.nbClient; ++j){
             for (int d=0; d<i.nbDepotPotentiel; ++d){
@@ -116,7 +116,7 @@ int Solution::checkOuvertureService(Instance i){
     return 1;
 }
 
-int Solution::checkNonDesouverture(Instance i){
+int FLPSolution::checkNonDesouverture(FLPData i){
     for (int j=0; j<i.nbClient; ++j){
         for (int d=0; d<i.nbDepotPotentiel; ++d){
             for (int t=0; t<i.nbPeriode; ++t){
@@ -139,7 +139,7 @@ int Solution::checkNonDesouverture(Instance i){
     return 1;
 }
 
-int Solution::checkBinarity(Instance i){
+int FLPSolution::checkBinarity(FLPData i){
     for (int j=0; j<i.nbClient; ++j){
         for (int d=0; d<i.nbDepotPotentiel; ++d){
             for (int t=0; t<i.nbPeriode; ++t){
