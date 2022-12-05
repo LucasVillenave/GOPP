@@ -1,10 +1,10 @@
-#ifndef INSTANCE
-#define INSTANCE
+#ifndef FLPDATA
+#define FLPDATA
 
 #include <vector>
 
 //miam on balance toute les données dans une seule classe en public. c'est dégeulasse mais on s'en tappe
-class Instance {
+class FLPData {
     public :
         //indices i,j,t. cost of assigning j to i at time t.
         std::vector<std::vector<std::vector<int>>> c;
@@ -18,7 +18,7 @@ class Instance {
         int nbDepotPotentiel;
         int nbPeriode;
 
-        Instance(
+        FLPData(
             std::vector<std::vector<std::vector<int>>> c,
             std::vector<std::vector<int>> f,
             std::vector<int> n,

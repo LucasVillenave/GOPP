@@ -4,14 +4,14 @@
 #include <string>
 #include <vector>
 
-class Solution;
-class Instance;
+class FLPSolution;
+class FLPData;
 
 
 //load instance from instances/
-Instance* load(std::string path);
+FLPData* load(std::string path);
 
 //write Solution to solutions/
-void write(Solution* sol, std::string solName);
+void write(FLPSolution* sol, std::string solName);
 
 #endif

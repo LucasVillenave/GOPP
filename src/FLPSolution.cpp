@@ -1,4 +1,4 @@
-#include "Solution.hpp"
+#include "FLPSolution.hpp"
 
 int Solution::check (Instance i){
     int isFeasable = checkBinarity(i);

@@ -1,9 +1,9 @@
 #include "gurobi_c++.h"
-#include "MIP.hpp"
+#include "FLPMIPModel.hpp"
 #include <sstream>
 
-Solution solve(Instance instance, int timeLimit){
-    Solution returnSol;
+FLPSolution solve(FLPData instance, int timeLimit){
+    FLPSolution returnSol;
     try{
         std::cout << "--> Creating the Gurobi environment" << std::endl;
         GRBEnv env(true);
@@ -170,7 +170,7 @@ Solution solve(Instance instance, int timeLimit){
                     }
                 }
             }
-            returnSol = Solution(SY,SX);
+            returnSol = FLPSolution(SY,SX);
             std::cout << "Solution feasability : " << returnSol.check(instance) << std::endl;
             // std::cout << "nmax = " << instance.n[instance.nbPeriode-1] << std::endl;
             // std::cout << counter << std::endl;
