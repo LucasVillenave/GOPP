@@ -181,64 +181,64 @@ FLPSolution FLPHeuristic::solve(FLPData instance){
 		// parameter
 
 
-		///////////////////////////////////////
-		// heuristic
+		// ///////////////////////////////////////
+		// // heuristic
 
-		// initialisation des données utiles : si le centre i est deja ouvert (true) ou non (false)
-		vector<bool> ouvert;
-		ouvert.resize(instance.nbDepotPotentiel);
-		for(int i = 0 ; i < instance.nbDepotPotentiel ; ++i){
-			ouvert[i] = false;
-		}
+		// // initialisation des données utiles : si le centre i est deja ouvert (true) ou non (false)
+		// vector<bool> ouvert;
+		// ouvert.resize(instance.nbDepotPotentiel);
+		// for(int i = 0 ; i < instance.nbDepotPotentiel ; ++i){
+		// 	ouvert[i] = false;
+		// }
 		
-		// pour chaque periode de temps
-		for(int t = 0 ; t < instance.nbPeriode ; ++t){
+		// // pour chaque periode de temps
+		// for(int t = 0 ; t < instance.nbPeriode ; ++t){
 			
-			// on doit ouvrir "instance.p[t]" centre , ouvertures garde en memoir le nombre actuel
-			int ouvertures = 0;
-			while ( ouvertures < instance.p[t] ){
+		// 	// on doit ouvrir "instance.p[t]" centre , ouvertures garde en memoir le nombre actuel
+		// 	int ouvertures = 0;
+		// 	while ( ouvertures < instance.p[t] ){
 				
-				// on resout le modele
-        		model.optimize();
+		// 		// on resout le modele
+        // 		model.optimize();
 
-				// on cherche les centre qui sont les plus suceptibles a etre ouvert selon la relaxation lineaire
-				forward_list<int>  a_ouvrir;
-				a_ouvrir.clear();
-				int taille = 0;
-				double maxi = 0.0000001;
-				for(int i = 0 ; i < instance.nbDepotPotentiel ; ++i){
-					if((maxi <= Y[t][i].get(GRB_DoubleAttr_X)) && (!ouvert[i])){
-						if (maxi == Y[t][i].get(GRB_DoubleAttr_X)){
-							a_ouvrir.push_front(i);
-							++taille;
-						}
-						else{
-							a_ouvrir.clear();
-							maxi == Y[t][i].get(GRB_DoubleAttr_X);
-							a_ouvrir.push_front(i);
-							taille = 1;
-						}
-					}
-				}
+		// 		// on cherche les centre qui sont les plus suceptibles a etre ouvert selon la relaxation lineaire
+		// 		forward_list<int>  a_ouvrir;
+		// 		a_ouvrir.clear();
+		// 		int taille = 0;
+		// 		double maxi = 0.0000001;
+		// 		for(int i = 0 ; i < instance.nbDepotPotentiel ; ++i){
+		// 			if((maxi <= Y[t][i].get(GRB_DoubleAttr_X)) && (!ouvert[i])){
+		// 				if (maxi == Y[t][i].get(GRB_DoubleAttr_X)){
+		// 					a_ouvrir.push_front(i);
+		// 					++taille;
+		// 				}
+		// 				else{
+		// 					a_ouvrir.clear();
+		// 					maxi == Y[t][i].get(GRB_DoubleAttr_X);
+		// 					a_ouvrir.push_front(i);
+		// 					taille = 1;
+		// 				}
+		// 			}
+		// 		}
 
-				// on les ouvres sans depacer le nombre a ouvrir (ce seront les dernier qui seront selectione en priorite)
-				// ici on peut aussi les choisir de maniere aleatoire si il y en a trop
-				forward_list<int>::iterator it = a_ouvrir.begin();
-				int vvv=1;
-				while(vvv==1){
-					model.addConstr(Y[t][*it] >= 1);
-					++ouvertures;
-					ouvert[*it] = true;
-					++it;
-					if (((it==a_ouvrir.end())||(ouvertures>=instance.p[t]))){
-						vvv=0;
-					}
-				}
+		// 		// on les ouvres sans depacer le nombre a ouvrir (ce seront les dernier qui seront selectione en priorite)
+		// 		// ici on peut aussi les choisir de maniere aleatoire si il y en a trop
+		// 		forward_list<int>::iterator it = a_ouvrir.begin();
+		// 		int vvv=1;
+		// 		while(vvv==1){
+		// 			model.addConstr(Y[t][*it] >= 1);
+		// 			++ouvertures;
+		// 			ouvert[*it] = true;
+		// 			++it;
+		// 			if (((it==a_ouvrir.end())||(ouvertures>=instance.p[t]))){
+		// 				vvv=0;
+		// 			}
+		// 		}
 
-			// si on en pas ouvert asses, on reresout le model pour mieux prendre en compte les ouvertures effectuees
-			}
+		// 	// si on en pas ouvert asses, on reresout le model pour mieux prendre en compte les ouvertures effectuees
+		// 	}
 
-		}
+		// }
 
 		// on resout une derniere fois pour s assurer d avoir des valeurs de X entieres
 		model.optimize();
