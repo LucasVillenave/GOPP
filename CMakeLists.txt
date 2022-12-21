@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 2.9)
 
 project (GOPP)
 
-set(GUROBI_ROOT "/opt/gurobi951/linux64/")
+set(GUROBI_ROOT "/home/pf/gurobi950/linux64/")
 set(GUROBI_INCLUDE_DIR "${GUROBI_ROOT}include")
 message(STATUS "GUROBI_INCLUDE_DIR : ${GUROBI_INCLUDE_DIR}")
 

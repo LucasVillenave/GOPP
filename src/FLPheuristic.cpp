@@ -1,16 +1,8 @@
 using namespace std;
 
-#include <ilcplex/ilocplex.h>
-#include <ilcplex/ilocplexi.h>
-#include <fstream>
-#include <string>
+#include "gurobi_c++.h"
 #include <vector>
-#include <list>
-#include <limits>
-#include <queue>
-#include <algorithm>
-#include <utility>
-#include <tuple>
+#include <forward_list>
 
 
 #include "FLPHeuristic.hpp"
@@ -39,39 +31,38 @@ FLPSolution FLPHeuristic::solve(FLPData instance){
 
 		///////////////////////////////////////
 		// creation environment
-		IloEnv env;
-		IloModel model ( env );
-		IloCplex cplex ( model );
+		GRBEnv env(true);
+        env.start();
+		GRBModel model(env);
 
 
 		///////////////////////////////////////
 		// creation variables
-		vector<IloNumVar> z;
-		vector<vector<vector<IloNumVar>>> x;
-		z.resize(instance.nbPeriode);
-		y.resize(instance.nbPeriode);
-		x.resize(instance.nbPeriode);
-		for (int t=0 ; t < instance.nbPeriode ; ++t){
-			char name[20];
-			sprintf(name,"z_%d",t);
-			z[t] = IloNumVar(env, 0.0, 1.0,IloNumVar::Float,name);
-			model.add(z[t]);
-			y.resize(instance.nbDepotPotentiel);
-			x.resize(instance.nbDepotPotentiel);
-			for (int i=0 ; i < instance.nbDepotPotentiel ; ++i){
-				char name[20];
-				sprintf(name,"y_%d_%d",t,i);
-				y[t] = IloNumVar(env, 0.0, 1.0,IloNumVar::Float,name);
-				model.add(y[t]);
-				x.resize(instance.nbDepotPotentiel);
-				for (int j=0 ; j < instance.nbClient ; ++j){
-					char name[20];
-					sprintf(name,"x_%d_%d_%d",t,i,j);
-					x[t][i][j] = IloNumVar(env, 0.0, 1.0,IloNumVar::Float,name);
-					model.add(x[t][i][j]);
-				}
+		GRBVar ** Z = new GRBVar*[instance.nbPeriode];
+		GRBVar ** Y = new GRBVar*[instance.nbPeriode];
+        GRBVar *** X = new GRBVar**[instance.nbPeriode];
+        for (int t=0; t<instance.nbPeriode; ++t){
+            Z[t] = new GRBVar[instance.nbClient];
+			for (int j=0; j<instance.nbClient; ++j){
+                name << "Z[" << t << "][" << j << "]";
+                Z[t][i] = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, name.str());
+                name.str("");
 			}
-		}
+            Y[t] = new GRBVar[instance.nbDepotPotentiel];
+            X[t] = new GRBVar*[instance.nbDepotPotentiel];
+            for (int i=0; i<instance.nbDepotPotentiel; ++i){
+                name << "Y[" << t << "][" << i << "]";
+                Y[t][i] = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, name.str());
+                name.str("");
+
+                X[t][i] = new GRBVar[instance.nbClient];
+                for (int j=0; j<instance.nbClient; ++j){
+                    name << "X[" << t << "][" << i << "][" << j << "]";
+                    X[t][i][j] = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS, name.str());
+                    name.str("");
+                }
+            }
+        }
 
 
 		///////////////////////////////////////
@@ -79,28 +70,27 @@ FLPSolution FLPHeuristic::solve(FLPData instance){
 
 		// t = 0
 		for (int j=0 ; j < instance.nbClient ; ++j){
-			IloExpr expe(env);
-			IloExpr exps(env);
-			expe = z[0][j];
-			exps = 0;
+			GRBLinExpr expe = Z[0][j];
+			GRBLinExpr exps = 0;
 			for (int i=0 ; i < instance.nbDepotPotentiel ; ++i){
-				exps += x[t+1][i][j]
+				exps += X[0][i][j];
 			}
-			model.add(expe == exps);
+			name << "flot[0][" << j << "]";
+            model.addConstr(expe==exps,name.str());
+            name.str("");
 		}
 
 		// 1 <- t -> T-1
-		for (int t=1 ; t < instance.nbPeriode-1 ; ++t){
+		for (int t=1 ; t < instance.nbPeriode ; ++t){
 			for (int j=0 ; j < instance.nbClient ; ++j){
-				IloExpr expe(env);
-				IloExpr exps(env);
-				expe = z[t][j];
-				exps = 0;
+				GRBLinExpr exp = Z[t][j];
 				for (int i=0 ; i < instance.nbDepotPotentiel ; ++i){
-					expe += x[t][i][j];
-					exps += x[t+1][i][j]
+					exp += X[t-1][i][j];
+					exp -= X[t][i][j];
 				}
-				model.add(expe == exps);
+				name << "flot[" << t << "][" << j << "]";
+				model.addConstr(exp==0,name.str());
+				name.str("");
 			}
 		}
 
@@ -108,85 +98,88 @@ FLPSolution FLPHeuristic::solve(FLPData instance){
 		///////////////////////////////////////
 		// constraint start / end flot		
 
-		// sum z
-		for (int t=0 ; t < instance.nbPeriode-1 ; ++t){
-			IloExpr exp(env);
-			exp = 0;
+		// sum Z
+		for (int t=0 ; t < instance.nbPeriode ; ++t){
+			GRBLinExpr exp = 0;
 			for (int j=0 ; j < instance.nbClient ; ++j){
-				exp += z[t][j];
+				exp += Z[t][j];
 			}
-			model.add(exp == instance.n[t]);
+			name << "sum_Z[" << t << "]";
+            model.addConstr(exp==instance.n[t],name.str());
+            name.str("");
 		}
 
 		// t = T
 		for (int j=0 ; j < instance.nbClient ; ++j){
-			IloExpr exp(env);
-			exp = 0;
+			GRBLinExpr exp = 0;
 			for (int i=0 ; i < instance.nbDepotPotentiel ; ++i){
 				exp += x[instance.nbPeriode-1][i][j];
 			}
-			model.add(exp == 1);
+			name << "end_flot[" << j << "]";
+            model.addConstr(exp==1,name.str());
+            name.str("");
 		}
 
 
 		///////////////////////////////////////
 		// constraint capacity
-		for (int t=0 ; t < instance.nbPeriode ; ++t){
-			for (int i=0 ; i < instance.nbDepotPotentiel ; ++i){
-				for (int j=0 ; j < instance.nbClient ; ++j){
-					IloExpr exp(env);
-					exp = 0;
-					for (int t_prime=0 ; t_prime <= t ; ++t_prime){
-						exp += y[t_prime][i];
-					}
-					model.add(x[t][i][j] <= exp);
-				}
-			}
-		}
+		for (int t=0; t<instance.nbPeriode; ++t){
+            for (int i=0; i<instance.nbDepotPotentiel; ++i){
+                for (int j=0; j<instance.nbClient; ++j){
+                    GRBLinExpr exp = X[t][i][j];
+                    for(int t2=0; t2<=t; ++t2){
+                        exp -= Y[t2][i];
+                    }
+                    name << "capacity_X[" << t << "][" << i << "][" << j << "]";
+                    model.addConstr(exp<=0,name.str());
+                    name.str("");
+                }
+            }
+        }
 
 
 		///////////////////////////////////////
-		// constraint y
+		// constraint Y
 
-		// sum y[t][.]
-		for (int t=0 ; t < instance.nbPeriode ; ++t){
-			IloExpr exp(env);
-			exp = 0;
-			for (int i=0 ; i < instance.nbDepotPotentiel ; ++i){
-				exp += y[t][i];
-			}
-			model.add(exp == instance.p[t]);
-		}
+		// sum Y[t][.]
+		for (int t=0; t<instance.nbPeriode; ++t){
+            GRBLinExpr exp = 0;
+            for (int i=0; i<instance.nbDepotPotentiel; ++i){
+                exp += Y[t][i];
+            }
+            name << "Y[" << t << "][.]";
+            model.addConstr(exp==instance.p[t],name.str());
+            name.str("");
+        }
 
-		// sum y[.][i]
-		for (int i=0 ; i < instance.nbDepotPotentiel ; ++i){
-			IloExpr exp(env);
-			exp = 0;
-			for (int t=0 ; t < instance.nbPeriode ; ++t){
-				exp += y[t][i];
-				}
-			model.add(exp <= 1);
-		}
+		// sum Y[.][i]
+		for (int i=0; i<instance.nbDepotPotentiel; ++i){
+            GRBLinExpr exp = 0;
+            for (int t=0; t<instance.nbPeriode; ++t){
+                exp += Y[t][i];
+            }
+            name << "Y[.][" << i << "]";
+            model.addConstr(exp<=1,name.str());
+            name.str("");
+        }
 
 
 		///////////////////////////////////////
 		// objectif
-		IloExpr obj(env);
-		obj = 0;
-		for (int t=0 ; t < instance.nbPeriode ; ++t){
-			for (int i=0 ; i < instance.nbDepotPotentiel ; ++i){
-				obj += y[t][i] * instance.f[t][i];
-				for (int j=0 ; j < instance.nbClient ; ++j){
-					obj += x[t][i][j] * instance.c[t][i][j];
-				}
-			}
-		}
-		model.add(IloMaximize(env,obj));
+		GRBLinExpr obj = 0;
+        for (int t=0; t<instance.nbPeriode; ++t){
+            for (int i=0; i<instance.nbDepotPotentiel; ++i){
+                obj += Y[t][i]*instance.f[i][t];
+                for (int j=0; j<instance.nbClient; ++j){
+                    obj += X[t][i][j]*instance.c[i][j][t];
+                }
+            }
+        }
+        model.setObjective(obj, GRB_MINIMIZE);
 
 
 		///////////////////////////////////////
 		// parameter
-		cplex.setParam(IloCplex::Param::MIP::Display,0);
 
 
 		///////////////////////////////////////
@@ -207,7 +200,7 @@ FLPSolution FLPHeuristic::solve(FLPData instance){
 			while ( ouvertures < instance.p[t] ){
 				
 				// on resout le modele
-				cplex.solve();  
+        		model.optimize();
 
 				// on cherche les centre qui sont les plus suceptibles a etre ouvert selon la relaxation lineaire
 				forward_list<int>  a_ouvrir;
@@ -215,14 +208,14 @@ FLPSolution FLPHeuristic::solve(FLPData instance){
 				int taille = 0;
 				double maxi = 0.0000001;
 				for(int i = 0 ; i < instance.nbDepotPotentiel ; ++i){
-					if((maxi <= cplex.getValue(y[t][i])) && (!ouvert[i])){
-						if (maxi == cplex.getValue(y[t][i])){
+					if((maxi <= Y[t][i].get(GRB_DoubleAttr_X)) && (!ouvert[i])){
+						if (maxi == Y[t][i].get(GRB_DoubleAttr_X)){
 							a_ouvrir.push_front(i);
 							++taille;
 						}
 						else{
 							a_ouvrir.clear();
-							maxi == cplex.getValue(y[t][i]);
+							maxi == Y[t][i].get(GRB_DoubleAttr_X);
 							a_ouvrir.push_front(i);
 							taille = 1;
 						}
@@ -238,32 +231,32 @@ FLPSolution FLPHeuristic::solve(FLPData instance){
 				}
 
 			// si on en pas ouvert asses, on reresout le model pour mieux prendre en compte les ouvertures effectuees
-			} 
+			}
 
 		}
 
 		// on resout une derniere fois pour s assurer d avoir des valeurs de X entieres
-		cplex.solve(); 
+		model.optimize();
 
 
 		///////////////////////////////////////
 		// extraction de la solution
 		std::vector<std::vector<std::vector<int>>> SX(instance.nbPeriode);
         std::vector<std::vector<int>> SY(instance.nbPeriode);
-		for (int t=0; t<instance.nbPeriode; ++t){
+        for (int t=0; t<instance.nbPeriode; ++t){
             SX[t] = std::vector<std::vector<int>>(instance.nbDepotPotentiel);
             SY[t] = std::vector<int>(instance.nbDepotPotentiel);
             for (int i=0; i<instance.nbDepotPotentiel; ++i){
-                if (cplex.getValue(y[t][i])>0.5){
-                    //std::cout << "Y[" << t << "][" << i << "] = 1" << std::endl;
+                if (Y[t][i].get(GRB_DoubleAttr_X)>0.5){
+                    std::cout << "Y[" << t << "][" << i << "] = 1" << std::endl;
                     SY[t][i] = 1;    
                 }else{
                     SY[t][i] = 0;
                 }
                 SX[t][i] = std::vector<int>(instance.nbClient);
                 for (int j=0; j<instance.nbClient; ++j){
-                    if (cplex.getValue(x[t][i][j])>0.5){
-                        //std::cout << "X[" << t << "][" << i << "][" << j << "] = 1" << std::endl;
+                    if (X[t][i][j].get(GRB_DoubleAttr_X)>0.5){
+                        std::cout << "X[" << t << "][" << i << "][" << j << "] = 1" << std::endl;
                         SX[t][i][j] = 1;
                         if (t==2)
                             counter++;
