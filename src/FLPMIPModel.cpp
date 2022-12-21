@@ -143,8 +143,6 @@ FLPSolution FLPMIPModel::solve(FLPData instance){
             model.write("solution.sol");
             std::cout << "Objective value = "<< model.get(GRB_DoubleAttr_ObjVal)  << std::endl;
 
-            int counter = 0;
-
             std::vector<std::vector<std::vector<int>>> SX(instance.nbPeriode);
             std::vector<std::vector<int>> SY(instance.nbPeriode);
             for (int t=0; t<instance.nbPeriode; ++t){
@@ -162,8 +160,6 @@ FLPSolution FLPMIPModel::solve(FLPData instance){
                         if (X[t][i][j].get(GRB_DoubleAttr_X)>0){
                             std::cout << "X[" << t << "][" << i << "][" << j << "] = 1" << std::endl;
                             SX[t][i][j] = 1;
-                            if (t==2)
-                                counter++;
                         }else{
                             SX[t][i][j] = 0;
                         }

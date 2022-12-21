@@ -3,6 +3,7 @@
 #include <ctime>
 #include "parser.hpp"
 #include "FLPMIPModel.hpp"
+#include "FLPHeuristic.hpp"
 
 using namespace std;
 
@@ -24,8 +25,19 @@ int main(int   argc,char *argv[])
     
     std:cout << "'" << argv[2] << "'" << std::endl;
 
-    // if (argv[2]=="-mip"){
+    std::string method = argv[2];
+
+    if (method=="-mip"){
         FLPMIPModel m(timeout);
         S = m.solve(*i);
-    // }
+    }else{
+        if (method=="-h"){
+            std::cout << "ici connard" << std::endl;
+            FLPHeuristic h(timeout);
+            S = h.solve(*i);
+        }else{
+            std::cout << "wrong arguments. Should have run : ./GOPP.exe <nomInstance> <nomMethode> <tempsLimite>" << std::endl;
+            std::cout << "methods are -mip for mip and -h for heuristic" << std::endl;
+        }
+    }
 }
