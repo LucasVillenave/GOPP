@@ -69,13 +69,12 @@ FLPSolution FLPHeuristic::solve(FLPData instance){
 
 		// t = 0
 		for (int j=0 ; j < instance.nbClient ; ++j){
-			GRBLinExpr expe = Z[0][j];
-			GRBLinExpr exps = 0;
+			GRBLinExpr exp = Z[0][j];
 			for (int i=0 ; i < instance.nbDepotPotentiel ; ++i){
-				exps += X[0][i][j];
+				exp -= X[0][i][j];
 			}
 			name << "flot[0][" << j << "]";
-            model.addConstr(expe==exps,name.str());
+            model.addConstr(exp==0,name.str());
             name.str("");
 		}
 
@@ -98,13 +97,20 @@ FLPSolution FLPHeuristic::solve(FLPData instance){
 		// constraint start / end flot		
 
 		// sum Z
-		for (int t=0 ; t < instance.nbPeriode ; ++t){
+		GRBLinExpr exp = 0;
+		for (int j=0 ; j < instance.nbClient ; ++j){
+			exp += Z[0][j];
+		}
+		name << "sum_Z[0]";
+        model.addConstr(exp==instance.n[0],name.str());
+        name.str("");
+		for (int t=1 ; t < instance.nbPeriode ; ++t){
 			GRBLinExpr exp = 0;
 			for (int j=0 ; j < instance.nbClient ; ++j){
 				exp += Z[t][j];
 			}
 			name << "sum_Z[" << t << "]";
-            model.addConstr(exp==instance.n[t],name.str());
+            model.addConstr(exp==instance.n[t]-instance.n[t-1],name.str());
             name.str("");
 		}
 
@@ -270,6 +276,7 @@ FLPSolution FLPHeuristic::solve(FLPData instance){
             }
         }
         returnSol = FLPSolution(SY,SX);
+
 	
 	}catch (GRBException e)
     {
