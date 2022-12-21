@@ -32,9 +32,9 @@ FLPSolution FLPHeuristic::solve(FLPData instance){
 
 		///////////////////////////////////////
 		// creation random
-		int graine = time(NULL);
-		cout << "graine : " << graine << endl << endl << endl;
-		srand(graine);
+		// int graine = time(NULL);
+		// cout << "graine : " << graine << endl << endl << endl;
+		// srand(graine);
 
 
 		///////////////////////////////////////
@@ -106,7 +106,7 @@ FLPSolution FLPHeuristic::solve(FLPData instance){
 
 
 		///////////////////////////////////////
-		// constraint start and end flot		
+		// constraint start / end flot		
 
 		// sum z
 		for (int t=0 ; t < instance.nbPeriode-1 ; ++t){
@@ -137,11 +137,35 @@ FLPSolution FLPHeuristic::solve(FLPData instance){
 					IloExpr exp(env);
 					exp = 0;
 					for (int t_prime=0 ; t_prime <= t ; ++t_prime){
-						exp += y[t_prime][i][j];
+						exp += y[t_prime][i];
 					}
 					model.add(x[t][i][j] <= exp);
 				}
 			}
+		}
+
+
+		///////////////////////////////////////
+		// constraint y
+
+		// sum y[t][.]
+		for (int t=0 ; t < instance.nbPeriode ; ++t){
+			IloExpr exp(env);
+			exp = 0;
+			for (int i=0 ; i < instance.nbDepotPotentiel ; ++i){
+				exp += y[t][i];
+			}
+			model.add(exp == instance.p[t]);
+		}
+
+		// sum y[.][i]
+		for (int i=0 ; i < instance.nbDepotPotentiel ; ++i){
+			IloExpr exp(env);
+			exp = 0;
+			for (int t=0 ; t < instance.nbPeriode ; ++t){
+				exp += y[t][i];
+				}
+			model.add(exp <= 1);
 		}
 
 
@@ -162,19 +186,94 @@ FLPSolution FLPHeuristic::solve(FLPData instance){
 
 		///////////////////////////////////////
 		// parameter
-		cplexTF.setParam(IloCplex::Param::MIP::Display,0);
-
+		cplex.setParam(IloCplex::Param::MIP::Display,0);
 
 
 		///////////////////////////////////////
 		// heuristic
-		
-		for(int t = 0, t < instance.nbPeriode, ++t){
-			
-			cplexTF.solve();  
 
+		// initialisation des données utiles : si le centre i est deja ouvert (true) ou non (false)
+		vector<bool> ouvert;
+		ouvert.resize(instance.nbDepotPotentiel);
+		for(int i = 0 ; i < instance.nbDepotPotentiel ; ++i){
+			ouvert[i] = false;
+		}
+		
+		// pour chaque periode de temps
+		for(int t = 0 ; t < instance.nbPeriode ; ++t){
+			
+			// on doit ouvrir "instance.p[t]" centre , ouvertures garde en memoir le nombre actuel
+			int ouvertures = 0;
+			while ( ouvertures < instance.p[t] ){
+				
+				// on resout le modele
+				cplex.solve();  
+
+				// on cherche les centre qui sont les plus suceptibles a etre ouvert selon la relaxation lineaire
+				forward_list<int>  a_ouvrir;
+				a_ouvrir.clear();
+				int taille = 0;
+				double maxi = 0.0000001;
+				for(int i = 0 ; i < instance.nbDepotPotentiel ; ++i){
+					if((maxi <= cplex.getValue(y[t][i])) && (!ouvert[i])){
+						if (maxi == cplex.getValue(y[t][i])){
+							a_ouvrir.push_front(i);
+							++taille;
+						}
+						else{
+							a_ouvrir.clear();
+							maxi == cplex.getValue(y[t][i]);
+							a_ouvrir.push_front(i);
+							taille = 1;
+						}
+					}
+				}
+
+				// on les ouvres sans depacer le nombre a ouvrir (ce seront les dernier qui seront selectione en priorite)
+				// ici on peut aussi les choisir de maniere aleatoire si il y en a trop
+				for(forward_list<int>::iterator it = a_ouvrir.begin() ; ((it!=a_ouvrir.end())&&(ouvertures<instance.p[t])) ; ++it){
+					model.add(y[t][*it] >= 1);
+					++ouvertures;
+					ouvert[*it] = true;
+				}
+
+			// si on en pas ouvert asses, on reresout le model pour mieux prendre en compte les ouvertures effectuees
+			} 
 
 		}
+
+		// on resout une derniere fois pour s assurer d avoir des valeurs de X entieres
+		cplex.solve(); 
+
+
+		///////////////////////////////////////
+		// extraction de la solution
+		std::vector<std::vector<std::vector<int>>> SX(instance.nbPeriode);
+        std::vector<std::vector<int>> SY(instance.nbPeriode);
+		for (int t=0; t<instance.nbPeriode; ++t){
+            SX[t] = std::vector<std::vector<int>>(instance.nbDepotPotentiel);
+            SY[t] = std::vector<int>(instance.nbDepotPotentiel);
+            for (int i=0; i<instance.nbDepotPotentiel; ++i){
+                if (cplex.getValue(y[t][i])>0.5){
+                    //std::cout << "Y[" << t << "][" << i << "] = 1" << std::endl;
+                    SY[t][i] = 1;    
+                }else{
+                    SY[t][i] = 0;
+                }
+                SX[t][i] = std::vector<int>(instance.nbClient);
+                for (int j=0; j<instance.nbClient; ++j){
+                    if (cplex.getValue(x[t][i][j])>0.5){
+                        //std::cout << "X[" << t << "][" << i << "][" << j << "] = 1" << std::endl;
+                        SX[t][i][j] = 1;
+                        if (t==2)
+                            counter++;
+                    }else{
+                        SX[t][i][j] = 0;
+                    }
+                }
+            }
+        }
+        returnSol = FLPSolution(SY,SX);
 	
 	}
 
